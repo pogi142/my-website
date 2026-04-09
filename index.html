@@ -2,154 +2,200 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>SAFE GAME</title>
+<title>Saif Game Hub</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body,html{margin:0;overflow:hidden;background:black;font-family:Arial;}
-
-canvas{position:fixed;top:0;left:0;}
-
-#menu{
-position:absolute;width:100%;height:100%;
-display:flex;justify-content:center;align-items:center;
-background:#111;color:white;z-index:10;
-flex-direction:column;
+body {
+    margin:0;
+    font-family:Arial;
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    color:white;
+    text-align:center;
 }
 
-#ui{position:absolute;top:10px;left:10px;color:white;z-index:10;}
-#chatInput{position:absolute;bottom:10px;left:10px;z-index:10;}
-
-#joystick{
-position:absolute;bottom:40px;right:40px;
-width:100px;height:100px;border-radius:50%;
-background:rgba(255,255,255,0.2);z-index:10;
+/* HEADER */
+h1 {
+    margin-top:20px;
+    font-size:40px;
 }
-#stick{
-position:absolute;width:40px;height:40px;
-background:white;border-radius:50%;
-top:30px;left:30px;
+
+/* GAME GRID */
+.games {
+    display:grid;
+    grid-template-columns: repeat(auto-fit,minmax(150px,1fr));
+    gap:15px;
+    padding:20px;
+}
+
+/* CARD */
+.card {
+    background:white;
+    color:black;
+    border-radius:15px;
+    overflow:hidden;
+    box-shadow:0 5px 15px rgba(0,0,0,0.3);
+    transition:0.3s;
+}
+
+.card:hover {
+    transform:scale(1.05);
+}
+
+/* IMAGE */
+.card img {
+    width:100%;
+    height:120px;
+    object-fit:cover;
+}
+
+/* BUTTON */
+.play {
+    background:#4CAF50;
+    color:white;
+    padding:10px;
+    border:none;
+    width:100%;
+}
+
+/* GAME SCREEN */
+#gameScreen {
+    display:none;
+}
+
+canvas {
+    width:100%;
+    height:100vh;
 }
 </style>
 </head>
 
 <body>
 
-<div id="menu">
-<h1>GAME</h1>
-<button onclick="startGame()">START</button>
+<h1>🎮 SAIF GAME HUB</h1>
+<p>Choose a game 👇</p>
+
+<div class="games">
+
+<!-- GAME 1 -->
+<div class="card">
+<img src="https://images.unsplash.com/photo-1605902711622-cfb43c4437d1">
+<h3>🏃 Runner Game</h3>
+<button class="play" onclick="startGame('runner')">PLAY</button>
 </div>
 
-<div id="ui">Coins: 0</div>
-<input id="chatInput" placeholder="Chat...">
+<!-- GAME 2 -->
+<div class="card">
+<img src="https://images.unsplash.com/photo-1598550476439-6847785fcea6">
+<h3>🪙 Coin Collector</h3>
+<button class="play" onclick="startGame('coin')">PLAY</button>
+</div>
 
-<div id="joystick"><div id="stick"></div></div>
+<!-- GAME 3 -->
+<div class="card">
+<img src="https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf">
+<h3>🚗 Driving</h3>
+<button class="play" onclick="startGame('drive')">PLAY</button>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="gameScreen"></div>
+
+<audio autoplay loop>
+<source src="https://cdn.pixabay.com/audio/2023/03/21/audio_8f3b6c4c9c.mp3">
+</audio>
 
 <script>
-let scene,camera,renderer,player;
-let keys={},coins=0;
-let joy={x:0,y:0};
+function startGame(type){
+    document.querySelector(".games").style.display="none";
+    document.getElementById("gameScreen").style.display="block";
 
-function startGame(){
-menu.style.display="none";
-
-scene=new THREE.Scene();
-scene.background=new THREE.Color(0x87ceeb);
-
-camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);
-
-renderer=new THREE.WebGLRenderer();
-renderer.setSize(innerWidth,innerHeight);
-document.body.appendChild(renderer.domElement);
-
-// light
-let light=new THREE.DirectionalLight(0xffffff,1);
-light.position.set(10,10,10);
-scene.add(light);
-
-// ground
-let ground=new THREE.Mesh(
-new THREE.PlaneGeometry(200,200),
-new THREE.MeshPhongMaterial({color:0x55aa55})
-);
-ground.rotation.x=-Math.PI/2;
-scene.add(ground);
-
-// player (SAFE cube)
-player=new THREE.Mesh(
-new THREE.BoxGeometry(1,2,1),
-new THREE.MeshPhongMaterial({color:0xff0000})
-);
-player.position.y=1;
-scene.add(player);
-
-// coins
-for(let i=0;i<10;i++){
-let c=new THREE.Mesh(
-new THREE.SphereGeometry(0.5),
-new THREE.MeshBasicMaterial({color:0xffff00})
-);
-c.position.set(Math.random()*50-25,1,Math.random()*50-25);
-c.name="coin";
-scene.add(c);
+    if(type==="runner") runnerGame();
+    if(type==="coin") coinGame();
+    if(type==="drive") driveGame();
 }
 
-// controls
-document.addEventListener("keydown",e=>keys[e.key]=true);
-document.addEventListener("keyup",e=>keys[e.key]=false);
+/* RUNNER GAME */
+function runnerGame(){
+    let div = document.getElementById("gameScreen");
+    div.innerHTML = "<h2>🏃 Tap to Jump!</h2>";
 
-// joystick
-let joyDiv=document.getElementById("joystick");
-joyDiv.addEventListener("touchmove",e=>{
-let t=e.touches[0];
-let r=joyDiv.getBoundingClientRect();
-joy.x=(t.clientX-(r.left+50))/40;
-joy.y=(t.clientY-(r.top+50))/40;
-});
-joyDiv.addEventListener("touchend",()=>{joy.x=0;joy.y=0;});
+    let player = document.createElement("div");
+    player.style.width="50px";
+    player.style.height="50px";
+    player.style.background="red";
+    player.style.position="absolute";
+    player.style.bottom="50px";
+    player.style.left="50px";
+    document.body.appendChild(player);
 
-animate();
+    let jumping=false;
+
+    document.onclick=()=>{
+        if(!jumping){
+            jumping=true;
+            let up=setInterval(()=>{
+                player.style.bottom = parseInt(player.style.bottom)+5+"px";
+            },20);
+            setTimeout(()=>{
+                clearInterval(up);
+                let down=setInterval(()=>{
+                    player.style.bottom = parseInt(player.style.bottom)-5+"px";
+                    if(parseInt(player.style.bottom)<=50){
+                        clearInterval(down);
+                        jumping=false;
+                    }
+                },20);
+            },300);
+        }
+    };
 }
 
-function move(){
-if(!player)return;
+/* COIN GAME */
+function coinGame(){
+    let div=document.getElementById("gameScreen");
+    div.innerHTML="<h2>🪙 Collect Coins!</h2>";
 
-let speed=0.2;
-let dx=joy.x, dz=joy.y;
+    for(let i=0;i<5;i++){
+        let coin=document.createElement("div");
+        coin.style.width="40px";
+        coin.style.height="40px";
+        coin.style.background="yellow";
+        coin.style.borderRadius="50%";
+        coin.style.position="absolute";
+        coin.style.top=Math.random()*80+"%";
+        coin.style.left=Math.random()*80+"%";
 
-if(keys["w"])dz=-1;
-if(keys["s"])dz=1;
-if(keys["a"])dx=-1;
-if(keys["d"])dx=1;
+        coin.onclick=()=>{
+            coin.remove();
+        };
 
-player.position.x+=dx*speed;
-player.position.z+=dz*speed;
+        document.body.appendChild(coin);
+    }
 }
 
-function collect(){
-scene.children.forEach(o=>{
-if(o.name==="coin" && player.position.distanceTo(o.position)<1){
-scene.remove(o);
-coins++;
-ui.innerText="Coins: "+coins;
-}
-});
-}
+/* DRIVE GAME */
+function driveGame(){
+    let div=document.getElementById("gameScreen");
+    div.innerHTML="<h2>🚗 Use Arrow Keys!</h2>";
 
-function animate(){
-requestAnimationFrame(animate);
+    let car=document.createElement("div");
+    car.style.width="60px";
+    car.style.height="30px";
+    car.style.background="blue";
+    car.style.position="absolute";
+    car.style.top="50%";
+    car.style.left="50%";
+    document.body.appendChild(car);
 
-move();
-collect();
-
-if(player){
-camera.position.set(player.position.x,5,player.position.z+10);
-camera.lookAt(player.position);
-}
-
-renderer.render(scene,camera);
+    document.onkeydown=e=>{
+        if(e.key==="ArrowUp") car.style.top=parseInt(car.style.top)-10+"px";
+        if(e.key==="ArrowDown") car.style.top=parseInt(car.style.top)+10+"px";
+        if(e.key==="ArrowLeft") car.style.left=parseInt(car.style.left)-10+"px";
+        if(e.key==="ArrowRight") car.style.left=parseInt(car.style.left)+10+"px";
+    };
 }
 </script>
 
