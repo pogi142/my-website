@@ -2,200 +2,118 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Saif Game Hub</title>
+<title>Connect Word Game</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body {
     margin:0;
     font-family:Arial;
-    background:linear-gradient(135deg,#667eea,#764ba2);
-    color:white;
     text-align:center;
+    background:linear-gradient(#4facfe,#00f2fe);
+    color:white;
 }
 
-/* HEADER */
-h1 {
-    margin-top:20px;
-    font-size:40px;
+h1 { margin-top:20px; }
+
+#word {
+    font-size:30px;
+    margin:20px;
+    letter-spacing:10px;
 }
 
-/* GAME GRID */
-.games {
-    display:grid;
-    grid-template-columns: repeat(auto-fit,minmax(150px,1fr));
-    gap:15px;
-    padding:20px;
+#letters {
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-top:30px;
 }
 
-/* CARD */
-.card {
+.letter {
+    width:60px;
+    height:60px;
+    margin:10px;
     background:white;
     color:black;
-    border-radius:15px;
-    overflow:hidden;
-    box-shadow:0 5px 15px rgba(0,0,0,0.3);
-    transition:0.3s;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:25px;
+    cursor:pointer;
+    transition:0.2s;
 }
 
-.card:hover {
-    transform:scale(1.05);
+.letter:hover {
+    background:yellow;
 }
 
-/* IMAGE */
-.card img {
-    width:100%;
-    height:120px;
-    object-fit:cover;
+#current {
+    font-size:25px;
+    margin-top:20px;
 }
 
-/* BUTTON */
-.play {
-    background:#4CAF50;
-    color:white;
-    padding:10px;
+button {
+    margin-top:20px;
+    padding:10px 20px;
     border:none;
-    width:100%;
-}
-
-/* GAME SCREEN */
-#gameScreen {
-    display:none;
-}
-
-canvas {
-    width:100%;
-    height:100vh;
+    border-radius:10px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🎮 SAIF GAME HUB</h1>
-<p>Choose a game 👇</p>
+<h1>🧠 CONNECT WORD</h1>
 
-<div class="games">
+<div id="word"></div>
+<div id="current">Word: </div>
 
-<!-- GAME 1 -->
-<div class="card">
-<img src="https://images.unsplash.com/photo-1605902711622-cfb43c4437d1">
-<h3>🏃 Runner Game</h3>
-<button class="play" onclick="startGame('runner')">PLAY</button>
-</div>
+<div id="letters"></div>
 
-<!-- GAME 2 -->
-<div class="card">
-<img src="https://images.unsplash.com/photo-1598550476439-6847785fcea6">
-<h3>🪙 Coin Collector</h3>
-<button class="play" onclick="startGame('coin')">PLAY</button>
-</div>
-
-<!-- GAME 3 -->
-<div class="card">
-<img src="https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf">
-<h3>🚗 Driving</h3>
-<button class="play" onclick="startGame('drive')">PLAY</button>
-</div>
-
-</div>
-
-<!-- GAME SCREEN -->
-<div id="gameScreen"></div>
-
-<audio autoplay loop>
-<source src="https://cdn.pixabay.com/audio/2023/03/21/audio_8f3b6c4c9c.mp3">
-</audio>
+<button onclick="checkWord()">✅ Check</button>
+<button onclick="resetWord()">❌ Reset</button>
 
 <script>
-function startGame(type){
-    document.querySelector(".games").style.display="none";
-    document.getElementById("gameScreen").style.display="block";
+let answer = "GAME";
+let current = "";
 
-    if(type==="runner") runnerGame();
-    if(type==="coin") coinGame();
-    if(type==="drive") driveGame();
-}
+let letters = answer.split("").sort(()=>Math.random()-0.5);
 
-/* RUNNER GAME */
-function runnerGame(){
-    let div = document.getElementById("gameScreen");
-    div.innerHTML = "<h2>🏃 Tap to Jump!</h2>";
+// show blanks
+document.getElementById("word").innerText =
+    "_ ".repeat(answer.length);
 
-    let player = document.createElement("div");
-    player.style.width="50px";
-    player.style.height="50px";
-    player.style.background="red";
-    player.style.position="absolute";
-    player.style.bottom="50px";
-    player.style.left="50px";
-    document.body.appendChild(player);
+// create letters
+let container = document.getElementById("letters");
 
-    let jumping=false;
+letters.forEach(l=>{
+    let div = document.createElement("div");
+    div.className="letter";
+    div.innerText=l;
 
-    document.onclick=()=>{
-        if(!jumping){
-            jumping=true;
-            let up=setInterval(()=>{
-                player.style.bottom = parseInt(player.style.bottom)+5+"px";
-            },20);
-            setTimeout(()=>{
-                clearInterval(up);
-                let down=setInterval(()=>{
-                    player.style.bottom = parseInt(player.style.bottom)-5+"px";
-                    if(parseInt(player.style.bottom)<=50){
-                        clearInterval(down);
-                        jumping=false;
-                    }
-                },20);
-            },300);
-        }
+    div.onclick=()=>{
+        current += l;
+        document.getElementById("current").innerText="Word: "+current;
     };
-}
 
-/* COIN GAME */
-function coinGame(){
-    let div=document.getElementById("gameScreen");
-    div.innerHTML="<h2>🪙 Collect Coins!</h2>";
+    container.appendChild(div);
+});
 
-    for(let i=0;i<5;i++){
-        let coin=document.createElement("div");
-        coin.style.width="40px";
-        coin.style.height="40px";
-        coin.style.background="yellow";
-        coin.style.borderRadius="50%";
-        coin.style.position="absolute";
-        coin.style.top=Math.random()*80+"%";
-        coin.style.left=Math.random()*80+"%";
-
-        coin.onclick=()=>{
-            coin.remove();
-        };
-
-        document.body.appendChild(coin);
+// check
+function checkWord(){
+    if(current === answer){
+        alert("🎉 Correct!");
+        location.reload();
+    } else {
+        alert("❌ Wrong!");
     }
 }
 
-/* DRIVE GAME */
-function driveGame(){
-    let div=document.getElementById("gameScreen");
-    div.innerHTML="<h2>🚗 Use Arrow Keys!</h2>";
-
-    let car=document.createElement("div");
-    car.style.width="60px";
-    car.style.height="30px";
-    car.style.background="blue";
-    car.style.position="absolute";
-    car.style.top="50%";
-    car.style.left="50%";
-    document.body.appendChild(car);
-
-    document.onkeydown=e=>{
-        if(e.key==="ArrowUp") car.style.top=parseInt(car.style.top)-10+"px";
-        if(e.key==="ArrowDown") car.style.top=parseInt(car.style.top)+10+"px";
-        if(e.key==="ArrowLeft") car.style.left=parseInt(car.style.left)-10+"px";
-        if(e.key==="ArrowRight") car.style.left=parseInt(car.style.left)+10+"px";
-    };
+// reset
+function resetWord(){
+    current="";
+    document.getElementById("current").innerText="Word:";
 }
 </script>
 
