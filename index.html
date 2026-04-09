@@ -1,70 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Saif Word Game 🔥</title>
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: white;
+    }
+
+    h1 {
+      margin-top: 20px;
+    }
+
+    #gameBox {
+      background: rgba(0,0,0,0.4);
+      padding: 20px;
+      border-radius: 15px;
+      width: 300px;
+      margin: auto;
+      margin-top: 30px;
+    }
+
+    input {
+      padding: 10px;
+      font-size: 18px;
+      border-radius: 8px;
+      border: none;
+      width: 80%;
+    }
+
+    button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .submit { background: #00ffcc; }
+    .hint { background: orange; }
+  </style>
+</head>
+
+<body>
+
+<h1>🔥 Saif Word Game 🔥</h1>
+
+<div id="gameBox">
+  <p id="level"></p>
+  <p id="timer">⏱ 10</p>
+  <h2 id="word"></h2>
+
+  <input id="input" placeholder="Type answer..."><br><br>
+
+  <button class="submit" onclick="check()">Submit</button>
+  <button class="hint" onclick="hint()">Hint</button>
+
+  <p id="result"></p>
+</div>
+
 <script>
 let levels = [
-"CAT","DOG","SUN","MAP","PEN","BOX","CAR","HAT","BAT","CUP",
-"PLANT","WATER","LIGHT","STONE","SMILE","CHAIR","TABLE","APPLE","GRAPE","BREAD",
-"POCKET","MARKET","FUTURE","GARDEN","ORANGE","PEOPLE","ANIMAL","SCHOOL","FRIEND","FAMILY",
-"COUNTRY","PICTURE","HISTORY","LANGUAGE","MOUNTAIN","ELEPHANT","NOTEBOOK","BASEBALL","AIRPLANE","HOSPITAL",
-"COMPUTER","EDUCATION","KNOWLEDGE","CHALLENGE","IMPORTANT","DIFFERENT","BEAUTIFUL","POWERFUL","ADVENTURE","EXPERIENCE"
+"CAT","DOG","SUN","MAP","PEN","BOX","CAR",
+"PLANT","WATER","LIGHT","STONE","SMILE",
+"POCKET","MARKET","FUTURE","GARDEN",
+"COUNTRY","PICTURE","HISTORY","LANGUAGE",
+"COMPUTER","EDUCATION","KNOWLEDGE","CHALLENGE"
 ];
 
 let level = 0;
 let answer = "";
-let current = "";
+let time = 10;
+let timer;
+
+function startTimer(){
+  clearInterval(timer);
+  time = 10;
+
+  timer = setInterval(()=>{
+    time--;
+    document.getElementById("timer").innerText = "⏱ " + time;
+
+    if(time <= 0){
+      clearInterval(timer);
+      document.getElementById("result").innerText = "⏰ Time's up!";
+    }
+  },1000);
+}
 
 function loadLevel(){
-    current = "";
-    answer = levels[level];
+  answer = levels[level];
 
-    document.getElementById("current").innerText =
-        "Level " + (level+1) + " | Word:";
-    
-    document.getElementById("word").innerText =
-        "_ ".repeat(answer.length);
+  document.getElementById("level").innerText =
+  "Level " + (level+1);
 
-    let letters = answer.split("").sort(()=>Math.random()-0.5);
+  document.getElementById("word").innerText =
+  "_ ".repeat(answer.length);
 
-    let container = document.getElementById("letters");
-    container.innerHTML = "";
+  document.getElementById("result").innerText = "";
+  document.getElementById("input").value = "";
 
-    letters.forEach(l=>{
-        let div = document.createElement("div");
-        div.className="letter";
-        div.innerText=l;
-
-        div.onclick=()=>{
-            current += l;
-            document.getElementById("current").innerText =
-                "Level " + (level+1) + " | Word: " + current;
-        };
-
-        container.appendChild(div);
-    });
+  startTimer();
 }
 
-function checkWord(){
-    if(current === answer){
-        alert("🎉 Correct! Level Up!");
+function check(){
+  let input = document.getElementById("input").value.toUpperCase();
 
-        level++;
+  if(input === answer){
+    playSound(true);
+    level++;
 
-        if(level >= levels.length){
-            alert("🏆 YOU BEAT LEVEL 50!");
-            level = 0;
-        }
-
-        loadLevel();
-    } else {
-        alert("❌ Wrong!");
+    if(level >= levels.length){
+      document.getElementById("result").innerText = "🎉 YOU WIN!";
+      clearInterval(timer);
+      return;
     }
 
-    current="";
+    loadLevel();
+  } else {
+    playSound(false);
+    document.getElementById("result").innerText = "❌ Wrong!";
+  }
 }
 
-function resetWord(){
-    current="";
-    document.getElementById("current").innerText =
-        "Level " + (level+1) + " | Word:";
+function hint(){
+  document.getElementById("result").innerText =
+  "💡 First letter: " + answer[0];
+}
+
+function playSound(correct){
+  let audio = new Audio(
+    correct ?
+    "https://www.soundjay.com/buttons/sounds/button-3.mp3" :
+    "https://www.soundjay.com/buttons/sounds/button-10.mp3"
+  );
+  audio.play();
 }
 
 loadLevel();
 </script>
+
+</body>
+</html>
