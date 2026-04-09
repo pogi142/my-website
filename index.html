@@ -2,25 +2,28 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>MAX ENGINE</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>SAFE GAME</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body,html {margin:0;overflow:hidden;background:black;font-family:Arial;}
+body,html{margin:0;overflow:hidden;background:black;font-family:Arial;}
+
+canvas{position:fixed;top:0;left:0;}
 
 #menu{
 position:absolute;width:100%;height:100%;
 display:flex;justify-content:center;align-items:center;
-flex-direction:column;background:#111;color:white;
+background:#111;color:white;z-index:10;
+flex-direction:column;
 }
 
-#ui{position:absolute;top:10px;left:10px;color:white;}
-#chatInput{position:absolute;bottom:10px;left:10px;padding:10px;}
+#ui{position:absolute;top:10px;left:10px;color:white;z-index:10;}
+#chatInput{position:absolute;bottom:10px;left:10px;z-index:10;}
 
 #joystick{
 position:absolute;bottom:40px;right:40px;
 width:100px;height:100px;border-radius:50%;
-background:rgba(255,255,255,0.2);
+background:rgba(255,255,255,0.2);z-index:10;
 }
 #stick{
 position:absolute;width:40px;height:40px;
@@ -33,204 +36,71 @@ top:30px;left:30px;
 <body>
 
 <div id="menu">
-<h1>⚡ MAX ENGINE</h1>
+<h1>GAME</h1>
 <button onclick="startGame()">START</button>
 </div>
 
-<div id="ui">Coins: 0 | Build: OFF</div>
+<div id="ui">Coins: 0</div>
 <input id="chatInput" placeholder="Chat...">
 
 <div id="joystick"><div id="stick"></div></div>
 
-<audio id="music" loop>
-<source src="https://cdn.pixabay.com/audio/2023/03/21/audio_8f3b6c4c9c.mp3">
-</audio>
-
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
 
 <script>
-let scene,camera,renderer,player,car;
-let keys={},coins=0,buildMode=false;
-let velocityY=0,onGround=true;
-let yaw=0,joy={x:0,y:0};
-let speed=0,carMode=false;
+let scene,camera,renderer,player;
+let keys={},coins=0;
+let joy={x:0,y:0};
 
-if(localStorage.save){
-let d=JSON.parse(localStorage.save);
-coins=d.coins||0;
-}
-
-// start
 function startGame(){
 menu.style.display="none";
-music.play();
 
 scene=new THREE.Scene();
 scene.background=new THREE.Color(0x87ceeb);
 
-camera=new THREE.PerspectiveCamera(90,innerWidth/innerHeight,0.1,1000);
+camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);
 
-renderer=new THREE.WebGLRenderer({antialias:true});
+renderer=new THREE.WebGLRenderer();
 renderer.setSize(innerWidth,innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // light
 let light=new THREE.DirectionalLight(0xffffff,1);
-light.position.set(50,50,50);
+light.position.set(10,10,10);
 scene.add(light);
 
 // ground
 let ground=new THREE.Mesh(
-new THREE.PlaneGeometry(500,500),
+new THREE.PlaneGeometry(200,200),
 new THREE.MeshPhongMaterial({color:0x55aa55})
 );
 ground.rotation.x=-Math.PI/2;
 scene.add(ground);
 
-// city roads
-for(let i=0;i<6;i++){
-let road=new THREE.Mesh(
-new THREE.BoxGeometry(200,0.1,6),
-new THREE.MeshPhongMaterial({color:0x222})
+// player (SAFE cube)
+player=new THREE.Mesh(
+new THREE.BoxGeometry(1,2,1),
+new THREE.MeshPhongMaterial({color:0xff0000})
 );
-road.position.z=i*25-60;
-scene.add(road);
-}
-
-// houses
-for(let i=0;i<8;i++){
-let h=new THREE.Mesh(
-new THREE.BoxGeometry(6,4,6),
-new THREE.MeshPhongMaterial({color:Math.random()*0xffffff})
-);
-h.position.set((Math.random()-0.5)*100,2,(Math.random()-0.5)*100);
-h.name="house";
-scene.add(h);
-}
-
-// avatar
-new THREE.GLTFLoader().load(
-"https://modelviewer.dev/shared-assets/models/Astronaut.glb",
-g=>{
-player=g.scene;
-player.scale.set(2,2,2);
+player.position.y=1;
 scene.add(player);
-}
-);
-
-// car
-car=new THREE.Mesh(
-new THREE.BoxGeometry(3,1,5),
-new THREE.MeshPhongMaterial({color:0x0000ff})
-);
-car.position.set(10,0.5,10);
-scene.add(car);
 
 // coins
-for(let i=0;i<25;i++){
+for(let i=0;i<10;i++){
 let c=new THREE.Mesh(
 new THREE.SphereGeometry(0.5),
 new THREE.MeshBasicMaterial({color:0xffff00})
 );
-c.position.set((Math.random()-0.5)*100,1,(Math.random()-0.5)*100);
+c.position.set(Math.random()*50-25,1,Math.random()*50-25);
 c.name="coin";
 scene.add(c);
 }
 
-document.addEventListener("keydown",e=>{
-keys[e.key.toLowerCase()]=true;
-if(e.key==="b") buildMode=!buildMode;
-});
-document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
-
-chatInput.onchange=e=>{
-chat(e.target.value);e.target.value="";
-};
-
-initJoystick();
-initCamera();
-
-animate();
-}
-
-// movement
-function move(){
-if(!player) return;
-
-let sp=keys["shift"]?0.3:0.15;
+// controls
+document.addEventListener("keydown",e=>keys[e.key]=true);
+document.addEventListener("keyup",e=>keys[e.key]=false);
 
 // joystick
-let dx=joy.x,dz=joy.y;
-if(keys["w"]) dz=-1;
-if(keys["s"]) dz=1;
-if(keys["a"]) dx=-1;
-if(keys["d"]) dx=1;
-
-// car enter
-if(player.position.distanceTo(car.position)<3 && keys["e"]){
-carMode=true;
-}
-
-// car mode
-if(carMode){
-speed += (dz*-0.02);
-speed*=0.98;
-
-car.rotation.y += dx*0.05;
-car.position.x += Math.sin(car.rotation.y)*speed;
-car.position.z += Math.cos(car.rotation.y)*speed;
-
-player.position.copy(car.position).add(new THREE.Vector3(0,1,0));
-
-if(keys["q"]) carMode=false;
-return;
-}
-
-// player move
-player.position.x += (dx*Math.cos(yaw)-dz*Math.sin(yaw))*sp;
-player.position.z += (dz*Math.cos(yaw)+dx*Math.sin(yaw))*sp;
-
-// jump
-if((keys[" "]||joy.jump)&&onGround){
-velocityY=0.3;onGround=false;
-}
-velocityY-=0.01;
-player.position.y+=velocityY;
-
-if(player.position.y<=1){
-player.position.y=1;velocityY=0;onGround=true;
-}
-
-// build
-if(buildMode && keys["f"]){
-let box=new THREE.Mesh(
-new THREE.BoxGeometry(2,2,2),
-new THREE.MeshPhongMaterial({color:0xffffff})
-);
-box.position.copy(player.position).add(new THREE.Vector3(0,0,-5));
-scene.add(box);
-}
-
-// collect coins
-scene.children.forEach(o=>{
-if(o.name==="coin" && player.position.distanceTo(o.position)<1){
-scene.remove(o);
-coins++;
-save();
-}
-});
-}
-
-// camera
-function initCamera(){
-document.addEventListener("mousemove",e=>{
-yaw-=e.movementX*0.002;
-});
-}
-
-// joystick
-function initJoystick(){
 let joyDiv=document.getElementById("joystick");
 joyDiv.addEventListener("touchmove",e=>{
 let t=e.touches[0];
@@ -238,41 +108,44 @@ let r=joyDiv.getBoundingClientRect();
 joy.x=(t.clientX-(r.left+50))/40;
 joy.y=(t.clientY-(r.top+50))/40;
 });
-joyDiv.addEventListener("touchend",()=>{
-joy.x=0;joy.y=0;
+joyDiv.addEventListener("touchend",()=>{joy.x=0;joy.y=0;});
+
+animate();
+}
+
+function move(){
+if(!player)return;
+
+let speed=0.2;
+let dx=joy.x, dz=joy.y;
+
+if(keys["w"])dz=-1;
+if(keys["s"])dz=1;
+if(keys["a"])dx=-1;
+if(keys["d"])dx=1;
+
+player.position.x+=dx*speed;
+player.position.z+=dz*speed;
+}
+
+function collect(){
+scene.children.forEach(o=>{
+if(o.name==="coin" && player.position.distanceTo(o.position)<1){
+scene.remove(o);
+coins++;
+ui.innerText="Coins: "+coins;
+}
 });
 }
 
-// chat
-function chat(text){
-let d=document.createElement("div");
-d.style.position="absolute";
-d.style.bottom="60px";
-d.style.left="10px";
-d.style.color="white";
-d.innerText=text;
-document.body.appendChild(d);
-setTimeout(()=>d.remove(),2000);
-}
-
-// save
-function save(){
-localStorage.save=JSON.stringify({coins});
-ui.innerText="Coins: "+coins+" | Build: "+(buildMode?"ON":"OFF");
-}
-
-// loop
 function animate(){
 requestAnimationFrame(animate);
 
 move();
+collect();
 
 if(player){
-camera.position.set(
-player.position.x + Math.sin(yaw)*10,
-player.position.y + 5,
-player.position.z + Math.cos(yaw)*10
-);
+camera.position.set(player.position.x,5,player.position.z+10);
 camera.lookAt(player.position);
 }
 
