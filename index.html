@@ -2,43 +2,30 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>🎢 Coaster Rush 3D</title>
+<title>MAX ENGINE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
 <style>
-body {
-    margin: 0;
-    overflow: hidden;
-    font-family: Arial;
-    background: black;
+body,html {margin:0;overflow:hidden;background:black;font-family:Arial;}
+
+#menu{
+position:absolute;width:100%;height:100%;
+display:flex;justify-content:center;align-items:center;
+flex-direction:column;background:#111;color:white;
 }
 
-#menu {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    color: white;
-}
+#ui{position:absolute;top:10px;left:10px;color:white;}
+#chatInput{position:absolute;bottom:10px;left:10px;padding:10px;}
 
-#menu h1 {
-    font-size: 60px;
+#joystick{
+position:absolute;bottom:40px;right:40px;
+width:100px;height:100px;border-radius:50%;
+background:rgba(255,255,255,0.2);
 }
-
-#startBtn {
-    padding: 15px 40px;
-    font-size: 22px;
-    border: none;
-    border-radius: 10px;
-    background: gold;
-    cursor: pointer;
-}
-
-canvas {
-    display: none;
+#stick{
+position:absolute;width:40px;height:40px;
+background:white;border-radius:50%;
+top:30px;left:30px;
 }
 </style>
 </head>
@@ -46,110 +33,251 @@ canvas {
 <body>
 
 <div id="menu">
-    <h1>🎢 COASTER RUSH 3D</h1>
-    <button id="startBtn">START GAME</button>
+<h1>⚡ MAX ENGINE</h1>
+<button onclick="startGame()">START</button>
 </div>
 
-<canvas id="game"></canvas>
+<div id="ui">Coins: 0 | Build: OFF</div>
+<input id="chatInput" placeholder="Chat...">
 
-<!-- 🎵 FREE MUSIC (No copyright issue) -->
+<div id="joystick"><div id="stick"></div></div>
+
 <audio id="music" loop>
-<source src="https://cdn.pixabay.com/audio/2023/03/21/audio_8f3b6c4c9c.mp3" type="audio/mpeg">
+<source src="https://cdn.pixabay.com/audio/2023/03/21/audio_8f3b6c4c9c.mp3">
 </audio>
 
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
+
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+let scene,camera,renderer,player,car;
+let keys={},coins=0,buildMode=false;
+let velocityY=0,onGround=true;
+let yaw=0,joy={x:0,y:0};
+let speed=0,carMode=false;
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-let speed = 0.25;
-let offset = 0;
-let playerY = 0;
-let velocity = 0;
-let score = 0;
-
-let keys = {};
-
-document.addEventListener("keydown", e => keys[e.key] = true);
-document.addEventListener("keyup", e => keys[e.key] = false);
-
-function track(x) {
-    return Math.sin(x * 0.01) * 100 +
-           Math.sin(x * 0.02) * 50;
+if(localStorage.save){
+let d=JSON.parse(localStorage.save);
+coins=d.coins||0;
 }
 
-function draw3D() {
-    // sky gradient
-    let grad = ctx.createLinearGradient(0,0,0,canvas.height);
-    grad.addColorStop(0,"#0f2027");
-    grad.addColorStop(1,"#2c5364");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,canvas.width,canvas.height);
+// start
+function startGame(){
+menu.style.display="none";
+music.play();
 
-    // stars
-    for (let i = 0; i < 100; i++) {
-        ctx.fillStyle = "white";
-        ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, 2,2);
-    }
+scene=new THREE.Scene();
+scene.background=new THREE.Color(0x87ceeb);
 
-    // 3D track
-    for (let i = 0; i < 300; i++) {
-        let z = i * 5;
-        let scale = 300 / (z + 200);
+camera=new THREE.PerspectiveCamera(90,innerWidth/innerHeight,0.1,1000);
 
-        let x = canvas.width / 2;
-        let y = canvas.height / 2 + track(offset + z) * scale;
+renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+document.body.appendChild(renderer.domElement);
 
-        ctx.beginPath();
-        ctx.arc(x, y, 4 * scale, 0, Math.PI*2);
-        ctx.fillStyle = "#00ffcc";
-        ctx.fill();
-    }
+// light
+let light=new THREE.DirectionalLight(0xffffff,1);
+light.position.set(50,50,50);
+scene.add(light);
 
-    // coaster
-    ctx.fillStyle = "red";
-    ctx.fillRect(canvas.width/2 - 25, canvas.height/2 + playerY, 50, 25);
+// ground
+let ground=new THREE.Mesh(
+new THREE.PlaneGeometry(500,500),
+new THREE.MeshPhongMaterial({color:0x55aa55})
+);
+ground.rotation.x=-Math.PI/2;
+scene.add(ground);
 
-    // score
-    ctx.fillStyle = "white";
-    ctx.font = "20px Arial";
-    ctx.fillText("Score: " + score, 20, 40);
+// city roads
+for(let i=0;i<6;i++){
+let road=new THREE.Mesh(
+new THREE.BoxGeometry(200,0.1,6),
+new THREE.MeshPhongMaterial({color:0x222})
+);
+road.position.z=i*25-60;
+scene.add(road);
 }
 
-function update() {
-    offset += speed * 50;
-    score++;
-
-    let ground = track(offset);
-
-    velocity += 0.5;
-    playerY += velocity;
-
-    if (playerY > ground) {
-        playerY = ground;
-        velocity = 0;
-    }
-
-    if (keys["ArrowUp"]) velocity -= 1.2;
-    if (keys["ArrowDown"]) velocity += 1.2;
+// houses
+for(let i=0;i<8;i++){
+let h=new THREE.Mesh(
+new THREE.BoxGeometry(6,4,6),
+new THREE.MeshPhongMaterial({color:Math.random()*0xffffff})
+);
+h.position.set((Math.random()-0.5)*100,2,(Math.random()-0.5)*100);
+h.name="house";
+scene.add(h);
 }
 
-function loop() {
-    update();
-    draw3D();
-    requestAnimationFrame(loop);
+// avatar
+new THREE.GLTFLoader().load(
+"https://modelviewer.dev/shared-assets/models/Astronaut.glb",
+g=>{
+player=g.scene;
+player.scale.set(2,2,2);
+scene.add(player);
+}
+);
+
+// car
+car=new THREE.Mesh(
+new THREE.BoxGeometry(3,1,5),
+new THREE.MeshPhongMaterial({color:0x0000ff})
+);
+car.position.set(10,0.5,10);
+scene.add(car);
+
+// coins
+for(let i=0;i<25;i++){
+let c=new THREE.Mesh(
+new THREE.SphereGeometry(0.5),
+new THREE.MeshBasicMaterial({color:0xffff00})
+);
+c.position.set((Math.random()-0.5)*100,1,(Math.random()-0.5)*100);
+c.name="coin";
+scene.add(c);
 }
 
-document.getElementById("startBtn").onclick = () => {
-    document.getElementById("menu").style.display = "none";
-    canvas.style.display = "block";
+document.addEventListener("keydown",e=>{
+keys[e.key.toLowerCase()]=true;
+if(e.key==="b") buildMode=!buildMode;
+});
+document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
 
-    document.getElementById("music").play();
-
-    loop();
+chatInput.onchange=e=>{
+chat(e.target.value);e.target.value="";
 };
+
+initJoystick();
+initCamera();
+
+animate();
+}
+
+// movement
+function move(){
+if(!player) return;
+
+let sp=keys["shift"]?0.3:0.15;
+
+// joystick
+let dx=joy.x,dz=joy.y;
+if(keys["w"]) dz=-1;
+if(keys["s"]) dz=1;
+if(keys["a"]) dx=-1;
+if(keys["d"]) dx=1;
+
+// car enter
+if(player.position.distanceTo(car.position)<3 && keys["e"]){
+carMode=true;
+}
+
+// car mode
+if(carMode){
+speed += (dz*-0.02);
+speed*=0.98;
+
+car.rotation.y += dx*0.05;
+car.position.x += Math.sin(car.rotation.y)*speed;
+car.position.z += Math.cos(car.rotation.y)*speed;
+
+player.position.copy(car.position).add(new THREE.Vector3(0,1,0));
+
+if(keys["q"]) carMode=false;
+return;
+}
+
+// player move
+player.position.x += (dx*Math.cos(yaw)-dz*Math.sin(yaw))*sp;
+player.position.z += (dz*Math.cos(yaw)+dx*Math.sin(yaw))*sp;
+
+// jump
+if((keys[" "]||joy.jump)&&onGround){
+velocityY=0.3;onGround=false;
+}
+velocityY-=0.01;
+player.position.y+=velocityY;
+
+if(player.position.y<=1){
+player.position.y=1;velocityY=0;onGround=true;
+}
+
+// build
+if(buildMode && keys["f"]){
+let box=new THREE.Mesh(
+new THREE.BoxGeometry(2,2,2),
+new THREE.MeshPhongMaterial({color:0xffffff})
+);
+box.position.copy(player.position).add(new THREE.Vector3(0,0,-5));
+scene.add(box);
+}
+
+// collect coins
+scene.children.forEach(o=>{
+if(o.name==="coin" && player.position.distanceTo(o.position)<1){
+scene.remove(o);
+coins++;
+save();
+}
+});
+}
+
+// camera
+function initCamera(){
+document.addEventListener("mousemove",e=>{
+yaw-=e.movementX*0.002;
+});
+}
+
+// joystick
+function initJoystick(){
+let joyDiv=document.getElementById("joystick");
+joyDiv.addEventListener("touchmove",e=>{
+let t=e.touches[0];
+let r=joyDiv.getBoundingClientRect();
+joy.x=(t.clientX-(r.left+50))/40;
+joy.y=(t.clientY-(r.top+50))/40;
+});
+joyDiv.addEventListener("touchend",()=>{
+joy.x=0;joy.y=0;
+});
+}
+
+// chat
+function chat(text){
+let d=document.createElement("div");
+d.style.position="absolute";
+d.style.bottom="60px";
+d.style.left="10px";
+d.style.color="white";
+d.innerText=text;
+document.body.appendChild(d);
+setTimeout(()=>d.remove(),2000);
+}
+
+// save
+function save(){
+localStorage.save=JSON.stringify({coins});
+ui.innerText="Coins: "+coins+" | Build: "+(buildMode?"ON":"OFF");
+}
+
+// loop
+function animate(){
+requestAnimationFrame(animate);
+
+move();
+
+if(player){
+camera.position.set(
+player.position.x + Math.sin(yaw)*10,
+player.position.y + 5,
+player.position.z + Math.cos(yaw)*10
+);
+camera.lookAt(player.position);
+}
+
+renderer.render(scene,camera);
+}
 </script>
 
 </body>
