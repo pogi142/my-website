@@ -1,121 +1,70 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Connect Word Game</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-body {
-    margin:0;
-    font-family:Arial;
-    text-align:center;
-    background:linear-gradient(#4facfe,#00f2fe);
-    color:white;
-}
-
-h1 { margin-top:20px; }
-
-#word {
-    font-size:30px;
-    margin:20px;
-    letter-spacing:10px;
-}
-
-#letters {
-    display:flex;
-    justify-content:center;
-    flex-wrap:wrap;
-    margin-top:30px;
-}
-
-.letter {
-    width:60px;
-    height:60px;
-    margin:10px;
-    background:white;
-    color:black;
-    border-radius:50%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:25px;
-    cursor:pointer;
-    transition:0.2s;
-}
-
-.letter:hover {
-    background:yellow;
-}
-
-#current {
-    font-size:25px;
-    margin-top:20px;
-}
-
-button {
-    margin-top:20px;
-    padding:10px 20px;
-    border:none;
-    border-radius:10px;
-}
-</style>
-</head>
-
-<body>
-
-<h1>🧠 CONNECT WORD</h1>
-
-<div id="word"></div>
-<div id="current">Word: </div>
-
-<div id="letters"></div>
-
-<button onclick="checkWord()">✅ Check</button>
-<button onclick="resetWord()">❌ Reset</button>
-
 <script>
-let answer = "GAME";
+let levels = [
+"CAT","DOG","SUN","MAP","PEN","BOX","CAR","HAT","BAT","CUP",
+"PLANT","WATER","LIGHT","STONE","SMILE","CHAIR","TABLE","APPLE","GRAPE","BREAD",
+"POCKET","MARKET","FUTURE","GARDEN","ORANGE","PEOPLE","ANIMAL","SCHOOL","FRIEND","FAMILY",
+"COUNTRY","PICTURE","HISTORY","LANGUAGE","MOUNTAIN","ELEPHANT","NOTEBOOK","BASEBALL","AIRPLANE","HOSPITAL",
+"COMPUTER","EDUCATION","KNOWLEDGE","CHALLENGE","IMPORTANT","DIFFERENT","BEAUTIFUL","POWERFUL","ADVENTURE","EXPERIENCE"
+];
+
+let level = 0;
+let answer = "";
 let current = "";
 
-let letters = answer.split("").sort(()=>Math.random()-0.5);
+function loadLevel(){
+    current = "";
+    answer = levels[level];
 
-// show blanks
-document.getElementById("word").innerText =
-    "_ ".repeat(answer.length);
+    document.getElementById("current").innerText =
+        "Level " + (level+1) + " | Word:";
+    
+    document.getElementById("word").innerText =
+        "_ ".repeat(answer.length);
 
-// create letters
-let container = document.getElementById("letters");
+    let letters = answer.split("").sort(()=>Math.random()-0.5);
 
-letters.forEach(l=>{
-    let div = document.createElement("div");
-    div.className="letter";
-    div.innerText=l;
+    let container = document.getElementById("letters");
+    container.innerHTML = "";
 
-    div.onclick=()=>{
-        current += l;
-        document.getElementById("current").innerText="Word: "+current;
-    };
+    letters.forEach(l=>{
+        let div = document.createElement("div");
+        div.className="letter";
+        div.innerText=l;
 
-    container.appendChild(div);
-});
+        div.onclick=()=>{
+            current += l;
+            document.getElementById("current").innerText =
+                "Level " + (level+1) + " | Word: " + current;
+        };
 
-// check
+        container.appendChild(div);
+    });
+}
+
 function checkWord(){
     if(current === answer){
-        alert("🎉 Correct!");
-        location.reload();
+        alert("🎉 Correct! Level Up!");
+
+        level++;
+
+        if(level >= levels.length){
+            alert("🏆 YOU BEAT LEVEL 50!");
+            level = 0;
+        }
+
+        loadLevel();
     } else {
         alert("❌ Wrong!");
     }
+
+    current="";
 }
 
-// reset
 function resetWord(){
     current="";
-    document.getElementById("current").innerText="Word:";
+    document.getElementById("current").innerText =
+        "Level " + (level+1) + " | Word:";
 }
-</script>
 
-</body>
-</html>
+loadLevel();
+</script>
