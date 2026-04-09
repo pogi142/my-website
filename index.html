@@ -1,171 +1,156 @@
-        <!DOCTYPE html><html>
+<!DOCTYPE html>
+<html>
 <head>
-<title>Games of Saif 🎮</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>🎢 Coaster Rush 3D</title>
+
 <style>
-body { margin:0; background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460); color:white; font-family:Arial; text-align:center; }
-h1{margin-top:20px;font-size:2.5em}
-canvas{background:#222;margin-top:20px;border:3px solid white;border-radius:15px}
-button{padding:10px 20px;margin:10px;border:none;border-radius:10px;font-size:1em;cursor:pointer}
-#menu{margin-top:50px}
-.hidden{display:none}
-#controls{margin-top:10px}
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial;
+    background: black;
+}
+
+#menu {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+}
+
+#menu h1 {
+    font-size: 60px;
+}
+
+#startBtn {
+    padding: 15px 40px;
+    font-size: 22px;
+    border: none;
+    border-radius: 10px;
+    background: gold;
+    cursor: pointer;
+}
+
+canvas {
+    display: none;
+}
 </style>
 </head>
-<body><h1>🎮 Games of Saif 🎮</h1>
-<p>Choose your game!</p><div id="menu">
-  <button onclick="startBattle()">⚔️ Battle Game</button>
-  <button onclick="startClicker()">💖 Happy Clicker</button>
-  <br>
-  <button onclick="toggleMusic()">🔊 Play / Pause Music</button>  <div id="controls">
-    🎧 Volume: <input type="range" min="0" max="1" step="0.01" value="0.5" onchange="setVolume(this.value)">
-  </div>
-</div><canvas id="game" width="400" height="400" class="hidden"></canvas>
 
-<!-- MUSIC --><audio id="menuMusic" loop>
-  <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_115b9b2b36.mp3">
+<body>
+
+<div id="menu">
+    <h1>🎢 COASTER RUSH 3D</h1>
+    <button id="startBtn">START GAME</button>
+</div>
+
+<canvas id="game"></canvas>
+
+<!-- 🎵 FREE MUSIC (No copyright issue) -->
+<audio id="music" loop>
+<source src="https://cdn.pixabay.com/audio/2023/03/21/audio_8f3b6c4c9c.mp3" type="audio/mpeg">
 </audio>
-<audio id="battleMusic" loop>
-  <source src="https://cdn.pixabay.com/download/audio/2022/10/25/audio_946b6c1e6e.mp3">
-</audio><!-- SOUND EFFECTS --><audio id="hitSound"><source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_24b82a1c3c.mp3"></audio> <audio id="winSound"><source src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_7b6f8c4c3c.mp3"></audio> <audio id="clickSound"><source src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_5d6e3a4d9a.mp3"></audio>
 
 <script>
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-const menuMusic=document.getElementById("menuMusic");
-const battleMusic=document.getElementById("battleMusic");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-const hitSound=document.getElementById("hitSound");
-const winSound=document.getElementById("winSound");
-const clickSound=document.getElementById("clickSound");
+let speed = 0.25;
+let offset = 0;
+let playerY = 0;
+let velocity = 0;
+let score = 0;
 
-let mode="menu";
+let keys = {};
 
-let player={x:50,y:200,hp:100};
-let enemy={x:300,y:200,hp:100};
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
 
-let keys={};
-document.addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true);
-document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
-
-function setVolume(v){
-  menuMusic.volume=v;
-  battleMusic.volume=v;
-  hitSound.volume=v;
-  winSound.volume=v;
-  clickSound.volume=v;
+function track(x) {
+    return Math.sin(x * 0.01) * 100 +
+           Math.sin(x * 0.02) * 50;
 }
 
-function stopAllMusic(){
-  menuMusic.pause();
-  battleMusic.pause();
+function draw3D() {
+    // sky gradient
+    let grad = ctx.createLinearGradient(0,0,0,canvas.height);
+    grad.addColorStop(0,"#0f2027");
+    grad.addColorStop(1,"#2c5364");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // stars
+    for (let i = 0; i < 100; i++) {
+        ctx.fillStyle = "white";
+        ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, 2,2);
+    }
+
+    // 3D track
+    for (let i = 0; i < 300; i++) {
+        let z = i * 5;
+        let scale = 300 / (z + 200);
+
+        let x = canvas.width / 2;
+        let y = canvas.height / 2 + track(offset + z) * scale;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 4 * scale, 0, Math.PI*2);
+        ctx.fillStyle = "#00ffcc";
+        ctx.fill();
+    }
+
+    // coaster
+    ctx.fillStyle = "red";
+    ctx.fillRect(canvas.width/2 - 25, canvas.height/2 + playerY, 50, 25);
+
+    // score
+    ctx.fillStyle = "white";
+    ctx.font = "20px Arial";
+    ctx.fillText("Score: " + score, 20, 40);
 }
 
-function toggleMusic(){
-  if(menuMusic.paused && battleMusic.paused){
-    if(mode==="battle") battleMusic.play(); else menuMusic.play();
-  } else {
-    stopAllMusic();
-  }
+function update() {
+    offset += speed * 50;
+    score++;
+
+    let ground = track(offset);
+
+    velocity += 0.5;
+    playerY += velocity;
+
+    if (playerY > ground) {
+        playerY = ground;
+        velocity = 0;
+    }
+
+    if (keys["ArrowUp"]) velocity -= 1.2;
+    if (keys["ArrowDown"]) velocity += 1.2;
 }
 
-function startBattle(){
-  mode="battle";
-  document.getElementById("menu").classList.add("hidden");
-  canvas.classList.remove("hidden");
-  stopAllMusic();
-  battleMusic.play();
+function loop() {
+    update();
+    draw3D();
+    requestAnimationFrame(loop);
 }
 
-function startClicker(){
-  mode="clicker";
-  document.getElementById("menu").classList.add("hidden");
-  canvas.classList.remove("hidden");
-  stopAllMusic();
-  menuMusic.play();
-}
+document.getElementById("startBtn").onclick = () => {
+    document.getElementById("menu").style.display = "none";
+    canvas.style.display = "block";
 
-canvas.addEventListener("click",()=>{
-  if(mode==="clicker"){
-    clickSound.currentTime=0;
-    clickSound.play();
-    ctx.fillStyle="pink";
-    ctx.beginPath();
-    ctx.arc(Math.random()*400,Math.random()*400,10,0,Math.PI*2);
-    ctx.fill();
-  }
-});
+    document.getElementById("music").play();
 
-function update(){
-  if(mode!=="battle")return;
+    loop();
+};
+</script>
 
-  if(keys["w"])player.y-=3;
-  if(keys["s"])player.y+=3;
-  if(keys["a"])player.x-=3;
-  if(keys["d"])player.x+=3;
-
-  if(enemy.x<player.x)enemy.x+=1.5;
-  if(enemy.x>player.x)enemy.x-=1.5;
-  if(enemy.y<player.y)enemy.y+=1.5;
-  if(enemy.y>player.y)enemy.y-=1.5;
-
-  let dx=player.x-enemy.x;
-  let dy=player.y-enemy.y;
-  let dist=Math.sqrt(dx*dx+dy*dy);
-
-  if(dist<30){
-    enemy.hp-=0.5;
-    player.hp-=0.3;
-    hitSound.currentTime=0;
-    hitSound.play();
-  }
-
-  if(enemy.hp<=0){
-    winSound.play();
-    alert("🏆 You Win!");
-    reset();
-  }
-
-  if(player.hp<=0){
-    alert("💀 You Lose!");
-    reset();
-  }
-}
-
-function draw(){
-  ctx.clearRect(0,0,400,400);
-
-  if(mode==="battle"){
-    ctx.fillStyle="blue";
-    ctx.fillRect(player.x,player.y,20,20);
-
-    ctx.fillStyle="red";
-    ctx.fillRect(enemy.x,enemy.y,20,20);
-
-    ctx.fillStyle="green";
-    ctx.fillRect(20,20,player.hp*2,10);
-    ctx.fillRect(200,20,enemy.hp*2,10);
-  }
-
-  if(mode==="clicker"){
-    ctx.fillStyle="white";
-    ctx.fillText("Click anywhere for happiness 💖",80,200);
-  }
-}
-
-function reset(){
-  player.hp=100; enemy.hp=100;
-  player.x=50; player.y=200;
-  enemy.x=300; enemy.y=200;
-}
-
-function loop(){ update(); draw(); requestAnimationFrame(loop); }
-loop();
-
-// start menu music on first click (browser policy)
-document.body.addEventListener("click",()=>{
-  if(mode==="menu") menuMusic.play();
-},{once:true});
-</script></body>
-        </html>
+</body>
+</html>
